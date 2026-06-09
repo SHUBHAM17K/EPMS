@@ -63,7 +63,6 @@ router.post('/', authenticateToken, requireRole(['ADMIN', 'MANAGER']), async (re
       return;
     }
 
-    // Create the project
     const project = await prisma.project.create({
       data: {
         name,
@@ -75,7 +74,6 @@ router.post('/', authenticateToken, requireRole(['ADMIN', 'MANAGER']), async (re
       },
     });
 
-    // Create assignments if provided
     if (members && Array.isArray(members)) {
       const memberData = members.map((m: { userId: number; role: string }) => ({
         projectId: project.id,
@@ -88,15 +86,17 @@ router.post('/', authenticateToken, requireRole(['ADMIN', 'MANAGER']), async (re
       });
     }
 
-    // Create project tasks/milestones if provided
     if (tasks && Array.isArray(tasks)) {
       const taskData = tasks.map((t: string) => ({
         projectId: project.id,
         title: t,
-        completed: false,
+        status: 'PENDING',
+        priority: 'MEDIUM',
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 7 days
+        assigneeId: req.user?.id || 1, // Default self
       }));
 
-      await prisma.projectTask.createMany({
+      await prisma.task.createMany({
         data: taskData,
       });
     }
@@ -124,7 +124,7 @@ router.put('/:projectId/tasks/:taskId/toggle', authenticateToken, async (req: Au
   try {
     const { projectId, taskId } = req.params;
 
-    const task = await prisma.projectTask.findUnique({
+    const task = await prisma.task.findUnique({
       where: { id: Number(taskId) },
     });
 
@@ -133,10 +133,10 @@ router.put('/:projectId/tasks/:taskId/toggle', authenticateToken, async (req: Au
       return;
     }
 
-    const updatedTask = await prisma.projectTask.update({
+    const updatedTask = await prisma.task.update({
       where: { id: task.id },
       data: {
-        completed: !task.completed,
+        status: task.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED',
       },
     });
 

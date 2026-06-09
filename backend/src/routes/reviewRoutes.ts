@@ -8,14 +8,14 @@ const router = Router();
 router.post('/', authenticateToken, requireRole(['ADMIN', 'MANAGER']), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const reviewerId = req.user?.id;
-    const { employeeId, communication, technical, delivery, teamwork, leadership, comments } = req.body;
+    const { employeeId, reviewType, communication, technical, delivery, teamwork, leadership, kpiScore, comments } = req.body;
 
     if (!reviewerId) {
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }
 
-    if (!employeeId || !communication || !technical || !delivery || !teamwork || !leadership) {
+    if (!employeeId || !reviewType || !communication || !technical || !delivery || !teamwork || !leadership) {
       res.status(400).json({ message: 'All ratings are required' });
       return;
     }
@@ -28,16 +28,19 @@ router.post('/', authenticateToken, requireRole(['ADMIN', 'MANAGER']), async (re
     }
 
     const overallScore = Number((ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2));
+    const finalKpiScore = kpiScore ? Number(kpiScore) : (overallScore * 20); // Fallback: overall score scale to 100
 
     const review = await prisma.performanceReview.create({
       data: {
         employeeId: Number(employeeId),
         reviewerId: reviewerId,
+        reviewType: String(reviewType),
         communication,
         technical,
         delivery,
         teamwork,
         leadership,
+        kpiScore: finalKpiScore,
         overallScore,
         comments,
       },
@@ -52,7 +55,7 @@ router.post('/', authenticateToken, requireRole(['ADMIN', 'MANAGER']), async (re
   }
 });
 
-// GET historical evaluations for an employee (filtered/sorted for trend charts)
+// GET historical evaluations for an employee
 router.get('/target/:employee_id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { employee_id } = req.params;
@@ -61,7 +64,6 @@ router.get('/target/:employee_id', authenticateToken, async (req: AuthenticatedR
 
     const empId = Number(employee_id);
 
-    // Employees can only request their own history
     if (role === 'EMPLOYEE' && requesterId !== empId) {
       res.status(403).json({ message: 'Forbidden: Cannot access other employees reviews' });
       return;
@@ -74,7 +76,7 @@ router.get('/target/:employee_id', authenticateToken, async (req: AuthenticatedR
           select: { id: true, name: true, role: true },
         },
       },
-      orderBy: { createdAt: 'asc' }, // Order chronologically to draw trend line charts
+      orderBy: { createdAt: 'asc' },
     });
 
     res.json(reviews);

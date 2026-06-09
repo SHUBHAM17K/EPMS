@@ -22,7 +22,14 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
         email: true,
         name: true,
         role: true,
+        employeeId: true,
         department: true,
+        designation: true,
+        phone: true,
+        linkedin: true,
+        bio: true,
+        profilePicture: true,
+        joiningDate: true,
         managerId: true,
         manager: {
           select: {
@@ -42,7 +49,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
 // POST new employee (Admin only)
 router.post('/', authenticateToken, requireRole(['ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { email, password, name, role, department, managerId } = req.body;
+    const { email, password, name, role, department, designation, phone, linkedin, bio, profilePicture, managerId } = req.body;
 
     if (!email || !password || !name || !role) {
       res.status(400).json({ message: 'Required fields: email, password, name, role' });
@@ -55,6 +62,9 @@ router.post('/', authenticateToken, requireRole(['ADMIN']), async (req: Authenti
       return;
     }
 
+    // Auto-generate employeeId if not provided
+    const employeeId = req.body.employeeId || `AX-EMP-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -64,7 +74,13 @@ router.post('/', authenticateToken, requireRole(['ADMIN']), async (req: Authenti
         password: hashedPassword,
         name,
         role,
+        employeeId,
         department,
+        designation,
+        phone,
+        linkedin,
+        bio,
+        profilePicture,
         managerId: managerId ? Number(managerId) : null,
       },
       select: {
@@ -72,7 +88,14 @@ router.post('/', authenticateToken, requireRole(['ADMIN']), async (req: Authenti
         email: true,
         name: true,
         role: true,
+        employeeId: true,
         department: true,
+        designation: true,
+        phone: true,
+        linkedin: true,
+        bio: true,
+        profilePicture: true,
+        joiningDate: true,
         managerId: true,
       },
     });
@@ -87,9 +110,8 @@ router.post('/', authenticateToken, requireRole(['ADMIN']), async (req: Authenti
 router.put('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, role, department, managerId, password } = req.body;
+    const { name, role, department, designation, phone, linkedin, bio, profilePicture, managerId, password } = req.body;
 
-    // Only Admin or the employee themselves can edit profile info
     if (req.user?.role !== 'ADMIN' && req.user?.id !== Number(id)) {
       res.status(403).json({ message: 'Forbidden: Cannot edit other profiles' });
       return;
@@ -98,8 +120,12 @@ router.put('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Res
     const updateData: any = {};
     if (name) updateData.name = name;
     if (department) updateData.department = department;
+    if (designation) updateData.designation = designation;
+    if (phone) updateData.phone = phone;
+    if (linkedin) updateData.linkedin = linkedin;
+    if (bio !== undefined) updateData.bio = bio;
+    if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
 
-    // Role and manager updates can only be performed by ADMIN
     if (req.user?.role === 'ADMIN') {
       if (role) updateData.role = role;
       if (managerId !== undefined) {
@@ -120,28 +146,19 @@ router.put('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Res
         email: true,
         name: true,
         role: true,
+        employeeId: true,
         department: true,
+        designation: true,
+        phone: true,
+        linkedin: true,
+        bio: true,
+        profilePicture: true,
+        joiningDate: true,
         managerId: true,
       },
     });
 
     res.json(updatedEmployee);
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// DELETE soft-delete employee (Admin only)
-router.delete('/:id', authenticateToken, requireRole(['ADMIN']), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-
-    const employee = await prisma.user.update({
-      where: { id: Number(id) },
-      data: { isActive: false },
-    });
-
-    res.json({ message: 'Employee profile soft-deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

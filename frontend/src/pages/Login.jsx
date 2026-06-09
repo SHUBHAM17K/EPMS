@@ -8,13 +8,13 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [selectedRole, setSelectedRole] = useState('EMPLOYEE'); // Visual helper
+  const [selectedRole, setSelectedRole] = useState('EMPLOYEE');
+  const [isHoveredLogo, setIsHoveredLogo] = useState(false);
   
   const { login, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const canvasRef = useRef(null);
 
-  // Auto fill credentials helper for quick demo testing
   const handleRoleSelect = (role) => {
     setSelectedRole(role);
     if (role === 'ADMIN') {
@@ -52,10 +52,9 @@ const Login = () => {
     };
     window.addEventListener('resize', handleResize);
 
-    // Particles config
     const particles = [];
     const particleCount = 45;
-    const colors = ['rgba(29, 78, 216, 0.15)', 'rgba(21, 128, 61, 0.15)', 'rgba(124, 58, 237, 0.15)'];
+    const colors = ['rgba(29, 78, 216, 0.12)', 'rgba(21, 128, 61, 0.12)', 'rgba(124, 58, 237, 0.12)'];
 
     class Particle {
       constructor() {
@@ -70,7 +69,6 @@ const Login = () => {
         this.x += this.vx;
         this.y += this.vy;
 
-        // Bounce back from limits
         if (this.x < -100) this.x = width + 100;
         if (this.x > width + 100) this.x = -100;
         if (this.y < -100) this.y = height + 100;
@@ -126,7 +124,6 @@ const Login = () => {
     }
   };
 
-  // Dynamically set visual color theme based on selected roles
   const getThemeColor = () => {
     if (selectedRole === 'ADMIN') return '#e11d48'; // Crimson
     if (selectedRole === 'MANAGER') return '#d97706'; // Amber
@@ -135,7 +132,6 @@ const Login = () => {
 
   return (
     <div className="login-wrapper" style={{ position: 'relative', overflow: 'hidden' }}>
-      {/* High performance animated canvas background */}
       <canvas
         ref={canvasRef}
         style={{
@@ -149,22 +145,76 @@ const Login = () => {
         }}
       />
       
-      {/* Glowing abstract blur shape */}
       <div className="login-bg-shape shape-1"></div>
       <div className="login-bg-shape shape-2"></div>
       <div className="login-bg-shape shape-3"></div>
       
       <div className="login-card" style={{ zIndex: 1, borderTop: `4px solid ${getThemeColor()}`, transition: 'border-color 0.4s ease' }}>
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>💼</span> EPMS PORTAL
+        
+        {/* Animated Custom Axiora Technologies Logo on Hover */}
+        <div 
+          onMouseEnter={() => setIsHoveredLogo(true)}
+          onMouseLeave={() => setIsHoveredLogo(false)}
+          style={{ 
+            textAlign: 'center', 
+            marginBottom: '1.5rem', 
+            cursor: 'pointer',
+            padding: '0.5rem',
+            borderRadius: '8px',
+            transition: 'all 0.3s ease',
+            background: isHoveredLogo ? 'rgba(29,78,216,0.03)' : 'transparent'
+          }}
+        >
+          {/* Geometric Animated SVG Logo */}
+          <svg 
+            width="50" 
+            height="50" 
+            viewBox="0 0 100 100" 
+            style={{ 
+              margin: '0 auto 0.5rem', 
+              display: 'block',
+              transform: isHoveredLogo ? 'rotate(180deg) scale(1.1)' : 'rotate(0deg) scale(1)',
+              transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            }}
+          >
+            <polygon 
+              points="50,15 90,85 10,85" 
+              fill="none" 
+              stroke={getThemeColor()} 
+              strokeWidth="6" 
+              strokeLinejoin="round"
+              style={{ transition: 'stroke 0.4s ease' }}
+            />
+            <circle 
+              cx="50" 
+              cy="55" 
+              r="15" 
+              fill={getThemeColor()}
+              style={{ 
+                transition: 'all 0.4s ease',
+                opacity: isHoveredLogo ? 0.8 : 1,
+                transform: isHoveredLogo ? 'translateY(-5px)' : 'translateY(0)'
+              }}
+            />
+          </svg>
+
+          <h2 style={{ 
+            fontSize: '1.4rem', 
+            fontWeight: 800, 
+            color: '#0f172a', 
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            transition: 'color 0.3s ease',
+            color: isHoveredLogo ? getThemeColor() : '#0f172a'
+          }}>
+            AXIORA TECHNOLOGIES
           </h2>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Performance Management System
+          <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.15rem' }}>
+            Enterprise Performance Portal
           </p>
         </div>
 
-        {/* Dynamic interactive role Quick-Login selector */}
+        {/* Dynamic selector */}
         <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: '#f1f5f9', padding: '0.25rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
           {['EMPLOYEE', 'MANAGER', 'ADMIN'].map((role) => (
             <button
@@ -201,7 +251,7 @@ const Login = () => {
             border: '1px solid #fca5a5',
             animation: 'cardFadeIn 0.3s ease'
           }}>
-            ⚠️ {error}
+            Validation Exception: {error}
           </div>
         )}
 
@@ -215,7 +265,7 @@ const Login = () => {
               className="form-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@company.com"
+              placeholder="name@axiora.com"
               style={{ padding: '0.6rem 0.75rem' }}
               required
             />
@@ -234,7 +284,6 @@ const Login = () => {
               style={{ padding: '0.6rem 2.25rem 0.6rem 0.75rem' }}
               required
             />
-            {/* Password show/hide toggle */}
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -249,7 +298,7 @@ const Login = () => {
                 color: '#64748b'
               }}
             >
-              {showPassword ? '👁️' : '🙈'}
+              {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
 
@@ -267,13 +316,13 @@ const Login = () => {
             }}
             disabled={submitting}
           >
-            {submitting ? 'Verifying Credentials...' : 'Sign In'}
+            {submitting ? 'Verifying Session Authorization...' : 'Authorize Access'}
           </button>
         </form>
 
         <div style={{ marginTop: '1.5rem', padding: '0.85rem', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
           <p style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>
-            Quick Sandbox Accounts:
+            Corporate Test Accounts:
           </p>
           <div style={{ fontSize: '0.72rem', color: '#334155', fontFamily: 'monospace', lineHeight: 1.5 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>

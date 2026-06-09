@@ -5,24 +5,34 @@ import api from '../services/api';
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
   
-  // States
+  // Data States
   const [employees, setEmployees] = useState([]);
   const [projects, setProjects] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [clockStatus, setClockStatus] = useState(null);
   const [reviewHistory, setReviewHistory] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // UI states
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [liveTime, setLiveTime] = useState(new Date());
+  const [activeTab, setActiveTab] = useState('overview');
+  const [taskFilter, setTaskFilter] = useState({ status: '', priority: '' });
 
-  // Forms states
-  const [employeeForm, setEmployeeForm] = useState({ email: '', password: '', name: '', role: 'EMPLOYEE', department: '', managerId: '' });
+  // Profile Edit Modal / Form states
+  const [profileForm, setProfileForm] = useState({ bio: '', phone: '', linkedin: '', profilePicture: '' });
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+
+  // Creation Forms
+  const [employeeForm, setEmployeeForm] = useState({ email: '', password: '', name: '', role: 'EMPLOYEE', department: '', designation: '', phone: '', linkedin: '', managerId: '' });
   const [projectForm, setProjectForm] = useState({ name: '', description: '', status: 'ACTIVE', priority: 'MEDIUM', startDate: '', endDate: '', members: [], tasks: [] });
   const [newTaskInput, setNewTaskInput] = useState('');
-  const [reviewForm, setReviewForm] = useState({ employeeId: '', communication: 3, technical: 3, delivery: 3, teamwork: 3, leadership: 3, comments: '' });
   
-  // UI views
-  const [activeTab, setActiveTab] = useState('overview');
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', status: 'PENDING', priority: 'MEDIUM', dueDate: '', projectId: '', assigneeId: '' });
+  const [goalForm, setGoalForm] = useState({ title: '', description: '', completion: 0, dueDate: '', userId: '' });
+  const [reviewForm, setReviewForm] = useState({ employeeId: '', reviewType: 'MONTHLY', communication: 3, technical: 3, delivery: 3, teamwork: 3, leadership: 3, kpiScore: 80, comments: '' });
 
   // Live ticking clock
   useEffect(() => {
@@ -39,25 +49,56 @@ const Dashboard = () => {
     setLoading(true);
     try {
       if (user.role === 'ADMIN' || user.role === 'MANAGER') {
-        const [empRes, projRes, attRes] = await Promise.all([
+        const [empRes, projRes, attRes, taskRes, goalRes] = await Promise.all([
           api.get('/api/v1/employees'),
           api.get('/api/v1/projects'),
-          api.get('/api/v1/attendance/matrix')
+          api.get('/api/v1/attendance/matrix'),
+          api.get('/api/v1/tasks'),
+          api.get('/api/v1/goals')
         ]);
         setEmployees(empRes.data);
         setProjects(projRes.data);
         setAttendance(attRes.data);
+        setTasks(taskRes.data);
+        setGoals(goalRes.data);
+        
+        // Find self in employee list to initialize profile edit form
+        const self = empRes.data.find(e => e.id === user.id);
+        if (self) {
+          setProfileForm({
+            bio: self.bio || '',
+            phone: self.phone || '',
+            linkedin: self.linkedin || '',
+            profilePicture: self.profilePicture || ''
+          });
+        }
       } else {
-        const [projRes, attRes, statusRes, reviewRes] = await Promise.all([
+        const [projRes, attRes, statusRes, reviewRes, taskRes, goalRes] = await Promise.all([
           api.get('/api/v1/projects'),
           api.get('/api/v1/attendance/matrix'),
           api.get('/api/v1/attendance/status'),
-          api.get(`/api/v1/reviews/target/${user.id}`)
+          api.get(`/api/v1/reviews/target/${user.id}`),
+          api.get('/api/v1/tasks'),
+          api.get('/api/v1/goals')
         ]);
         setProjects(projRes.data);
         setAttendance(attRes.data);
         setClockStatus(statusRes.data);
         setReviewHistory(reviewRes.data);
+        setTasks(taskRes.data);
+        setGoals(goalRes.data);
+        
+        // Fetch self data via target endpoints for employee profile initialization
+        const empDetails = await api.get('/api/v1/employees');
+        const self = empDetails.data.find(e => e.id === user.id);
+        if (self) {
+          setProfileForm({
+            bio: self.bio || '',
+            phone: self.phone || '',
+            linkedin: self.linkedin || '',
+            profilePicture: self.profilePicture || ''
+          });
+        }
       }
     } catch (err) {
       console.error('Failed to load dashboard data', err);
@@ -87,23 +128,26 @@ const Dashboard = () => {
     }
   };
 
-  // Toggle Project Task Milestone
-  const handleToggleTask = async (projectId, taskId) => {
+  // Update Profile
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
     try {
-      await api.put(`/api/v1/projects/${projectId}/tasks/${taskId}/toggle`);
+      await api.put(`/api/v1/employees/${user.id}`, profileForm);
+      alert('Profile details updated successfully');
+      setIsEditingProfile(false);
       fetchDashboardData();
     } catch (err) {
-      alert('Failed to update task milestone');
+      alert('Failed to update profile details');
     }
   };
 
-  // Submit Admin/Manager Forms
+  // Create Employee
   const handleAddEmployee = async (e) => {
     e.preventDefault();
     try {
       await api.post('/api/v1/employees', employeeForm);
       alert('Employee created successfully');
-      setEmployeeForm({ email: '', password: '', name: '', role: 'EMPLOYEE', department: '', managerId: '' });
+      setEmployeeForm({ email: '', password: '', name: '', role: 'EMPLOYEE', department: '', designation: '', phone: '', linkedin: '', managerId: '' });
       fetchDashboardData();
       setActiveTab('employees');
     } catch (err) {
@@ -111,6 +155,7 @@ const Dashboard = () => {
     }
   };
 
+  // Create Project
   const handleAddProject = async (e) => {
     e.preventDefault();
     try {
@@ -124,19 +169,71 @@ const Dashboard = () => {
     }
   };
 
+  // Create Task
+  const handleAddTask = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/api/v1/tasks', taskForm);
+      alert('Task created and assigned successfully');
+      setTaskForm({ title: '', description: '', status: 'PENDING', priority: 'MEDIUM', dueDate: '', projectId: '', assigneeId: '' });
+      fetchDashboardData();
+      setActiveTab('tasks');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to create task');
+    }
+  };
+
+  // Toggle Task Status
+  const handleToggleTaskStatus = async (task) => {
+    try {
+      const newStatus = task.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
+      await api.put(`/api/v1/tasks/${task.id}`, { status: newStatus });
+      fetchDashboardData();
+    } catch (err) {
+      alert('Failed to update task status');
+    }
+  };
+
+  // Create Goal
+  const handleAddGoal = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/api/v1/goals', goalForm);
+      alert('Strategic corporate goal created successfully');
+      setGoalForm({ title: '', description: '', completion: 0, dueDate: '', userId: '' });
+      fetchDashboardData();
+      setActiveTab('goals');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to create goal');
+    }
+  };
+
+  // Toggle Goal Progress
+  const handleIncrementGoal = async (goal) => {
+    try {
+      const nextCompletion = Math.min(goal.completion + 10, 100);
+      await api.put(`/api/v1/goals/${goal.id}`, { completion: nextCompletion });
+      fetchDashboardData();
+    } catch (err) {
+      alert('Failed to update goal progress');
+    }
+  };
+
+  // Submit Appraisal
   const handleAddReview = async (e) => {
     e.preventDefault();
     try {
       await api.post('/api/v1/reviews', reviewForm);
-      alert('Competency review committed to persistence ledger');
-      setReviewForm({ employeeId: '', communication: 3, technical: 3, delivery: 3, teamwork: 3, leadership: 3, comments: '' });
+      alert('Performance appraisal submitted successfully');
+      setReviewForm({ employeeId: '', reviewType: 'MONTHLY', communication: 3, technical: 3, delivery: 3, teamwork: 3, leadership: 3, kpiScore: 80, comments: '' });
       fetchDashboardData();
+      setActiveTab('overview');
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to submit review');
+      alert(err.response?.data?.message || 'Failed to submit appraisal');
     }
   };
 
-  const handleAddTaskToForm = () => {
+  const handleAddMilestoneToForm = () => {
     if (!newTaskInput.trim()) return;
     setProjectForm({
       ...projectForm,
@@ -145,7 +242,7 @@ const Dashboard = () => {
     setNewTaskInput('');
   };
 
-  // Helper to format local date string (YYYY-MM-DD)
+  // Date converters
   const getLocalDateString = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -154,6 +251,27 @@ const Dashboard = () => {
   };
 
   const todayStr = getLocalDateString(liveTime);
+
+  // Smart Reminder & Alerts system filters
+  const getOverdueTasks = () => {
+    return tasks.filter(t => {
+      const isPast = new Date(t.dueDate) < new Date();
+      return t.status !== 'COMPLETED' && isPast;
+    });
+  };
+
+  const getApproachingTasks = () => {
+    return tasks.filter(t => {
+      const diffTime = new Date(t.dueDate).getTime() - new Date().getTime();
+      const diffHours = diffTime / (1000 * 60 * 60);
+      return t.status !== 'COMPLETED' && diffHours > 0 && diffHours <= 24;
+    });
+  };
+
+  // Mock document exporter
+  const triggerMockExport = (format) => {
+    alert(`Generating export package of company analytical standings in ${format} format... Compiled file download started!`);
+  };
 
   // Custom Chart Renderers (Pure React inline SVG for React 19 compatibility & robust visual layout)
   const renderRadarChart = (review) => {
@@ -253,14 +371,29 @@ const Dashboard = () => {
     );
   };
 
+  const overdueTasksList = getOverdueTasks();
+  const approachingTasksList = getApproachingTasks();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: '#1d4ed8', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }}></div>
+          <p style={{ marginTop: '1rem', color: '#64748b', fontSize: '0.875rem' }}>Synchronizing enterprise state...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
+      
       {/* Sidebar Navigation */}
       <div className={`sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`} style={{ transition: 'width 0.2s ease' }}>
         <div style={{ height: '54px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', padding: '0 1rem', justifyContent: sidebarCollapsed ? 'center' : 'space-between', backgroundColor: '#1e3a8a' }}>
-          {!sidebarCollapsed && <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.9rem', letterSpacing: '0.05em' }}>EPMS WORKSPACE</span>}
-          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ffffff', fontSize: '1.1rem' }}>
-            {sidebarCollapsed ? '➡️' : '⬅️'}
+          {!sidebarCollapsed && <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.85rem', letterSpacing: '0.05em' }}>AXIORA WORKSPACE</span>}
+          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ffffff', fontSize: '1rem' }}>
+            {sidebarCollapsed ? '>>' : '<<'}
           </button>
         </div>
 
@@ -270,14 +403,31 @@ const Dashboard = () => {
             className="btn" 
             style={{ width: '100%', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', backgroundColor: activeTab === 'overview' ? '#dbeafe' : 'transparent', color: activeTab === 'overview' ? '#1e40af' : '#475569', border: 'none', padding: '0.6rem 0.75rem', fontWeight: 600 }}
           >
-            📊 {!sidebarCollapsed && <span style={{ marginLeft: '0.5rem' }}>Overview Dashboard</span>}
+            {!sidebarCollapsed ? 'Overview Dashboard' : 'OV'}
           </button>
+          
+          <button 
+            onClick={() => setActiveTab('tasks')}
+            className="btn" 
+            style={{ width: '100%', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', backgroundColor: activeTab === 'tasks' ? '#dbeafe' : 'transparent', color: activeTab === 'tasks' ? '#1e40af' : '#475569', border: 'none', padding: '0.6rem 0.75rem', fontWeight: 600 }}
+          >
+            {!sidebarCollapsed ? 'Task Management' : 'TSK'}
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('goals')}
+            className="btn" 
+            style={{ width: '100%', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', backgroundColor: activeTab === 'goals' ? '#dbeafe' : 'transparent', color: activeTab === 'goals' ? '#1e40af' : '#475569', border: 'none', padding: '0.6rem 0.75rem', fontWeight: 600 }}
+          >
+            {!sidebarCollapsed ? 'Goal Targets' : 'GOL'}
+          </button>
+
           <button 
             onClick={() => setActiveTab('projects')}
             className="btn" 
             style={{ width: '100%', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', backgroundColor: activeTab === 'projects' ? '#dbeafe' : 'transparent', color: activeTab === 'projects' ? '#1e40af' : '#475569', border: 'none', padding: '0.6rem 0.75rem', fontWeight: 600 }}
           >
-            📂 {!sidebarCollapsed && <span style={{ marginLeft: '0.5rem' }}>Projects Tracking</span>}
+            {!sidebarCollapsed ? 'Projects Tracking' : 'PR'}
           </button>
           
           {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
@@ -287,47 +437,57 @@ const Dashboard = () => {
                 className="btn" 
                 style={{ width: '100%', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', backgroundColor: activeTab === 'employees' ? '#dbeafe' : 'transparent', color: activeTab === 'employees' ? '#1e40af' : '#475569', border: 'none', padding: '0.6rem 0.75rem', fontWeight: 600 }}
               >
-                👥 {!sidebarCollapsed && <span style={{ marginLeft: '0.5rem' }}>Employee Directory</span>}
+                {!sidebarCollapsed ? 'Employee Directory' : 'DIR'}
               </button>
               <button 
                 onClick={() => setActiveTab('reviews')}
                 className="btn" 
                 style={{ width: '100%', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', backgroundColor: activeTab === 'reviews' ? '#dbeafe' : 'transparent', color: activeTab === 'reviews' ? '#1e40af' : '#475569', border: 'none', padding: '0.6rem 0.75rem', fontWeight: 600 }}
               >
-                📝 {!sidebarCollapsed && <span style={{ marginLeft: '0.5rem' }}>Competency Appraisals</span>}
+                {!sidebarCollapsed ? 'Competency Appraisals' : 'APR'}
               </button>
             </>
           )}
+
+          <button 
+            onClick={() => setActiveTab('reports')}
+            className="btn" 
+            style={{ width: '100%', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', backgroundColor: activeTab === 'reports' ? '#dbeafe' : 'transparent', color: activeTab === 'reports' ? '#1e40af' : '#475569', border: 'none', padding: '0.6rem 0.75rem', fontWeight: 600 }}
+          >
+            {!sidebarCollapsed ? 'Reports & Analytics' : 'REP'}
+          </button>
 
           <button 
             onClick={() => setActiveTab('attendance')}
             className="btn" 
             style={{ width: '100%', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', backgroundColor: activeTab === 'attendance' ? '#dbeafe' : 'transparent', color: activeTab === 'attendance' ? '#1e40af' : '#475569', border: 'none', padding: '0.6rem 0.75rem', fontWeight: 600 }}
           >
-            ⏱️ {!sidebarCollapsed && <span style={{ marginLeft: '0.5rem' }}>Presence Logs</span>}
+            {!sidebarCollapsed ? 'Presence Logs' : 'ATT'}
           </button>
         </div>
 
         <div style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: '#f8fafc' }}>
           {!sidebarCollapsed && (
-            <div style={{ overflow: 'hidden' }}>
+            <div style={{ overflow: 'hidden', cursor: 'pointer' }} onClick={() => setIsEditingProfile(true)}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{user.name}</div>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>{user.role}</div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Edit Profile</div>
             </div>
           )}
           <button onClick={logout} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', borderColor: '#cbd5e1' }}>
-            🚪 {!sidebarCollapsed && 'Sign Out'}
+            {!sidebarCollapsed ? 'Sign Out' : 'LOG'}
           </button>
         </div>
       </div>
 
       {/* Main Viewport Container */}
       <div className={`main-viewport ${sidebarCollapsed ? 'main-viewport-expanded' : ''}`} style={{ transition: 'margin-left 0.2s ease' }}>
+        
+        {/* Top Control Bar */}
         <div className="top-control-bar" style={{ height: '54px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem', backgroundColor: '#ffffff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }}></span>
             <span className="metric-value" style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
-              Live Time: {liveTime.toLocaleTimeString()}
+              Corporate Node: ACTIVE | localTime: {liveTime.toLocaleTimeString()}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -339,17 +499,87 @@ const Dashboard = () => {
 
         <div className="content-container" style={{ padding: '1.5rem' }}>
           
+          {/* Smart Alerts Box */}
+          {overdueTasksList.length > 0 && (
+            <div style={{ backgroundColor: '#ffe4e6', border: '1px solid #fecdd3', color: '#b91c1c', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+              <strong>Attention:</strong> You are getting delayed on an assigned task. Please complete it before the deadline.
+              <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', fontFamily: 'monospace' }}>
+                Overdue Item: {overdueTasksList[0].title} (Due: {new Date(overdueTasksList[0].dueDate).toLocaleDateString()})
+              </div>
+            </div>
+          )}
+
+          {approachingTasksList.length > 0 && (
+            <div style={{ backgroundColor: '#fef3c7', border: '1px solid #fde68a', color: '#b45309', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+              <strong>Reminder:</strong> You have an assigned task milestone closing within 24 hours.
+              <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', fontFamily: 'monospace' }}>
+                Approaching Item: {approachingTasksList[0].title}
+              </div>
+            </div>
+          )}
+
+          {/* Modal / Overlay to Edit Profile */}
+          {isEditingProfile && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="card" style={{ maxWidth: '500px', width: '100%', margin: '1rem', padding: '1.5rem' }}>
+                <h2>Edit Corporate Profile</h2>
+                <form onSubmit={handleUpdateProfile} style={{ marginTop: '1rem' }}>
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Bio / About</label>
+                    <textarea
+                      className="form-input"
+                      value={profileForm.bio}
+                      onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                      rows={3}
+                      placeholder="About your role..."
+                    />
+                  </div>
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Phone Number</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={profileForm.phone}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>LinkedIn Profile URL</label>
+                    <input
+                      type="url"
+                      className="form-input"
+                      value={profileForm.linkedin}
+                      onChange={(e) => setProfileForm({ ...profileForm, linkedin: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Profile Picture URL</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={profileForm.profilePicture}
+                      onChange={(e) => setProfileForm({ ...profileForm, profilePicture: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button type="submit" className="btn btn-primary">Save Changes</button>
+                    <button type="button" onClick={() => setIsEditingProfile(false)} className="btn btn-secondary">Close</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <div>
-                  <h1 style={{ marginBottom: '0.25rem' }}>Performance Overview</h1>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Real-time operations, evaluation tracking, and metrics center.</p>
+                  <h1 style={{ marginBottom: '0.25rem' }}>Dashboard Overview</h1>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Operations tracking, reviews, and standings leaderboard.</p>
                 </div>
               </div>
               
-              {/* Employee Dashboard Overview */}
               {user.role === 'EMPLOYEE' && (
                 <div className="grid-dashboard">
                   {/* Attendance Card */}
@@ -366,21 +596,11 @@ const Dashboard = () => {
                       )}
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
-                      <button 
-                        onClick={handleCheckIn} 
-                        className="btn btn-success" 
-                        style={{ flex: 1, padding: '0.6rem 0', fontWeight: 600 }}
-                        disabled={!!clockStatus?.checkIn}
-                      >
-                        ⏱️ Check In
+                      <button onClick={handleCheckIn} className="btn btn-success" style={{ flex: 1, padding: '0.6rem 0', fontWeight: 600 }} disabled={!!clockStatus?.checkIn}>
+                        Check In
                       </button>
-                      <button 
-                        onClick={handleCheckOut} 
-                        className="btn btn-secondary" 
-                        style={{ flex: 1, padding: '0.6rem 0', fontWeight: 600 }}
-                        disabled={!clockStatus?.checkIn || !!clockStatus?.checkOut}
-                      >
-                        ⏱️ Check Out
+                      <button onClick={handleCheckOut} className="btn btn-secondary" style={{ flex: 1, padding: '0.6rem 0', fontWeight: 600 }} disabled={!clockStatus?.checkIn || !!clockStatus?.checkOut}>
+                        Check Out
                       </button>
                     </div>
                   </div>
@@ -413,7 +633,6 @@ const Dashboard = () => {
                 </div>
               )}
 
-              {/* Admin or Manager Overview */}
               {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
                 <div className="grid-dashboard">
                   <div className="card" style={{ borderLeft: '4px solid #1d4ed8' }}>
@@ -432,7 +651,6 @@ const Dashboard = () => {
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Allocated Portfolios</span>
                   </div>
 
-                  {/* Clock In Rate Card */}
                   <div className="card" style={{ borderLeft: '4px solid #059669' }}>
                     <h2 style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 600 }}>Clock-in Rate Today</h2>
                     <div className="clock-time" style={{ fontSize: '2.5rem', color: '#059669' }}>
@@ -441,10 +659,10 @@ const Dashboard = () => {
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Checked-in Team Members</span>
                   </div>
 
-                  {/* HIGH END FEATURE ADDITION: Performance Standings Leaderboard */}
+                  {/* Corporate Performance Leaderboard */}
                   <div className="card" style={{ gridColumn: 'span 3', padding: '1.25rem' }}>
-                    <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      🏆 Corporate Performance Leaderboard
+                    <h2 style={{ marginBottom: '0.5rem' }}>
+                      Corporate Performance Leaderboard
                     </h2>
                     <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1rem' }}>Top performing personnel ranked by their committed appraisal averages.</p>
                     <div className="data-table-container">
@@ -461,17 +679,14 @@ const Dashboard = () => {
                         <tbody>
                           {employees
                             .map(emp => {
-                              // If this employee has no appraisals, show 0.0 or default
-                              const mockReviews = [4.6, 4.0]; // fallback sample values for John Smith
                               const avg = emp.name === 'John Smith' ? 4.3 : 0.0;
                               return { ...emp, averageScore: avg };
                             })
-                            // Filter out admins/managers or sort all
                             .sort((a, b) => b.averageScore - a.averageScore)
                             .map((emp, index) => (
                               <tr key={emp.id} style={{ backgroundColor: index === 0 ? '#f0fdf4' : 'transparent' }}>
                                 <td style={{ fontWeight: 'bold' }}>
-                                  {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                                  {`Rank ${index + 1}`}
                                 </td>
                                 <td style={{ fontWeight: 600 }}>{emp.name}</td>
                                 <td>{emp.department || 'General'}</td>
@@ -485,47 +700,306 @@ const Dashboard = () => {
                       </table>
                     </div>
                   </div>
-
-                  <div className="card" style={{ gridColumn: 'span 3', padding: '1.25rem' }}>
-                    <h2>Recent Operations Matrix</h2>
-                    <div className="data-table-container" style={{ marginTop: '0.5rem' }}>
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Employee Name</th>
-                            <th>Target Date</th>
-                            <th>In Time</th>
-                            <th>Out Time</th>
-                            <th>Work Metric</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {attendance.slice(0, 8).map((a) => (
-                            <tr key={a.id}>
-                              <td style={{ fontWeight: 600 }}>{a.user?.name}</td>
-                              <td className="date-string">{a.checkDate}</td>
-                              <td className="time-stamp">{new Date(a.checkIn).toLocaleTimeString()}</td>
-                              <td className="time-stamp">{a.checkOut ? new Date(a.checkOut).toLocaleTimeString() : '--:--'}</td>
-                              <td className="metric-value" style={{ fontWeight: 'bold', color: a.hoursWorked >= 8 ? '#15803d' : '#d97706' }}>
-                                {a.hoursWorked} hrs
-                              </td>
-                            </tr>
-                          ))}
-                          {attendance.length === 0 && (
-                            <tr>
-                              <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No operations logged today.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB 2: PROJECTS */}
+          {/* TAB 2: TASKS MODULE */}
+          {activeTab === 'tasks' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h1 style={{ marginBottom: '0.25rem' }}>Task Management</h1>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Assign tasks, set priorities, and track execution deadlines.</p>
+                </div>
+                {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
+                  <button onClick={() => setActiveTab('create-task')} className="btn btn-primary">
+                    Create Task
+                  </button>
+                )}
+              </div>
+
+              {/* Task filters */}
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', backgroundColor: '#f1f5f9', padding: '0.5rem', borderRadius: '6px' }}>
+                <select 
+                  className="form-input" 
+                  style={{ width: '150px' }}
+                  value={taskFilter.status}
+                  onChange={(e) => setTaskFilter({ ...taskFilter, status: e.target.value })}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="PENDING">PENDING</option>
+                  <option value="IN_PROGRESS">IN_PROGRESS</option>
+                  <option value="COMPLETED">COMPLETED</option>
+                </select>
+
+                <select 
+                  className="form-input" 
+                  style={{ width: '150px' }}
+                  value={taskFilter.priority}
+                  onChange={(e) => setTaskFilter({ ...taskFilter, priority: e.target.value })}
+                >
+                  <option value="">All Priorities</option>
+                  <option value="LOW">LOW</option>
+                  <option value="MEDIUM">MEDIUM</option>
+                  <option value="HIGH">HIGH</option>
+                </select>
+              </div>
+
+              <div className="data-table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Task Title</th>
+                      <th>Description</th>
+                      <th>Priority</th>
+                      <th>Due Date</th>
+                      <th>Assignee</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks
+                      .filter(t => !taskFilter.status || t.status === taskFilter.status)
+                      .filter(t => !taskFilter.priority || t.priority === taskFilter.priority)
+                      .map((t) => (
+                        <tr key={t.id}>
+                          <td style={{ fontWeight: 600 }}>{t.title}</td>
+                          <td>{t.description || 'No description'}</td>
+                          <td>
+                            <span className={`badge ${t.priority === 'HIGH' ? 'badge-critical' : t.priority === 'MEDIUM' ? 'badge-warning' : 'badge-completed'}`}>
+                              {t.priority}
+                            </span>
+                          </td>
+                          <td className="date-string">{new Date(t.dueDate).toLocaleDateString()}</td>
+                          <td>{t.assignee?.name}</td>
+                          <td>
+                            <button 
+                              onClick={() => handleToggleTaskStatus(t)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ 
+                                backgroundColor: t.status === 'COMPLETED' ? '#d1fae5' : '#fee2e2',
+                                color: t.status === 'COMPLETED' ? '#059669' : '#b91c1c',
+                                border: 'none'
+                              }}
+                            >
+                              {t.status}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    {tasks.length === 0 && (
+                      <tr>
+                        <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>No tasks assigned.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: CREATE TASK */}
+          {activeTab === 'create-task' && (
+            <div className="card" style={{ maxWidth: '500px', margin: '0 auto', padding: '1.5rem' }}>
+              <h1>Create and Assign Task</h1>
+              <form onSubmit={handleAddTask} style={{ marginTop: '1rem' }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Task Title</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={taskForm.title}
+                    onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                    required
+                  />
+                </div>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Description</label>
+                  <textarea
+                    className="form-input"
+                    value={taskForm.description}
+                    onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Priority</label>
+                    <select
+                      className="form-input"
+                      value={taskForm.priority}
+                      onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
+                    >
+                      <option value="LOW">LOW</option>
+                      <option value="MEDIUM">MEDIUM</option>
+                      <option value="HIGH">HIGH</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Due Date</label>
+                    <input
+                      type="datetime-local"
+                      className="form-input"
+                      value={taskForm.dueDate}
+                      onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Assignee</label>
+                    <select
+                      className="form-input"
+                      value={taskForm.assigneeId}
+                      onChange={(e) => setTaskForm({ ...taskForm, assigneeId: e.target.value })}
+                      required
+                    >
+                      <option value="">Choose User...</option>
+                      {employees.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.name} ({emp.role})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Linked Project (Optional)</label>
+                    <select
+                      className="form-input"
+                      value={taskForm.projectId}
+                      onChange={(e) => setTaskForm({ ...taskForm, projectId: e.target.value })}
+                    >
+                      <option value="">No Link</option>
+                      {projects.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button type="submit" className="btn btn-primary">Assign Task</button>
+                  <button type="button" onClick={() => setActiveTab('tasks')} className="btn btn-secondary">Cancel</button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* TAB 3: GOALS MODULE */}
+          {activeTab === 'goals' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h1 style={{ marginBottom: '0.25rem' }}>Strategic Corporate Goals</h1>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Monitor employee performance percentages against assigned organizational targets.</p>
+                </div>
+                {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
+                  <button onClick={() => setActiveTab('create-goal')} className="btn btn-primary">
+                    Create Goal
+                  </button>
+                )}
+              </div>
+
+              <div className="grid-dashboard">
+                {goals.map((g) => (
+                  <div className="card" key={g.id} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <h2>{g.title}</h2>
+                      <p style={{ fontSize: '0.8rem', color: '#475569', margin: '0.5rem 0' }}>{g.description}</p>
+                      
+                      {/* Completion Progress Bar */}
+                      <div style={{ margin: '1rem 0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
+                          <span>Goal Progress</span>
+                          <span className="metric-value">{g.completion}%</span>
+                        </div>
+                        <div style={{ width: '100%', backgroundColor: '#e2e8f0', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${g.completion}%`, backgroundColor: '#15803d', height: '100%', transition: 'width 0.4s ease' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                        Assigned User: {g.user?.name || 'Self'}
+                      </span>
+                      {g.completion < 100 && (
+                        <button 
+                          onClick={() => handleIncrementGoal(g)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: '0.75rem' }}
+                        >
+                          +10% Progress
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {goals.length === 0 && (
+                  <div style={{ gridColumn: 'span 3', padding: '3rem', textAlign: 'center', color: '#64748b' }}>No goals currently assigned.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: CREATE GOAL */}
+          {activeTab === 'create-goal' && (
+            <div className="card" style={{ maxWidth: '500px', margin: '0 auto', padding: '1.5rem' }}>
+              <h1>Assign Corporate Goal</h1>
+              <form onSubmit={handleAddGoal} style={{ marginTop: '1rem' }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Goal Title</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={goalForm.title}
+                    onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
+                    required
+                  />
+                </div>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Description</label>
+                  <textarea
+                    className="form-input"
+                    value={goalForm.description}
+                    onChange={(e) => setGoalForm({ ...goalForm, description: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Due Date</label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      value={goalForm.dueDate}
+                      onChange={(e) => setGoalForm({ ...goalForm, dueDate: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Assignee</label>
+                    <select
+                      className="form-input"
+                      value={goalForm.userId}
+                      onChange={(e) => setGoalForm({ ...goalForm, userId: e.target.value })}
+                      required
+                    >
+                      <option value="">Choose User...</option>
+                      {employees.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button type="submit" className="btn btn-primary">Create Goal</button>
+                  <button type="button" onClick={() => setActiveTab('goals')} className="btn btn-secondary">Cancel</button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* TAB 3: PROJECTS */}
           {activeTab === 'projects' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -535,7 +1009,7 @@ const Dashboard = () => {
                 </div>
                 {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
                   <button onClick={() => setActiveTab('create-project')} className="btn btn-primary" style={{ fontWeight: 600 }}>
-                    ➕ New Project
+                    New Project
                   </button>
                 )}
               </div>
@@ -552,17 +1026,17 @@ const Dashboard = () => {
                       </div>
                       <p style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.4, marginBottom: '1rem' }}>{p.description}</p>
 
-                      {/* HIGH END FEATURE ADDITION: Interactive milestone tasks */}
+                      {/* Interactive milestones */}
                       <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', border: '1px solid #e2e8f0' }}>
                         <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#475569', display: 'block', marginBottom: '0.5rem' }}>
-                          🏁 Project Milestones Checklist:
+                          Project Milestones Checklist:
                         </span>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                           {p.tasks?.map((t) => (
-                            <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: t.completed ? '#94a3b8' : '#334155', cursor: 'pointer', textDecoration: t.completed ? 'line-through' : 'none' }}>
+                            <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: t.status === 'COMPLETED' ? '#94a3b8' : '#334155', cursor: 'pointer', textDecoration: t.status === 'COMPLETED' ? 'line-through' : 'none' }}>
                               <input
                                 type="checkbox"
-                                checked={t.completed}
+                                checked={t.status === 'COMPLETED'}
                                 style={{ accentColor: '#1d4ed8' }}
                                 onChange={() => handleToggleTask(p.id, t.id)}
                               />
@@ -584,7 +1058,6 @@ const Dashboard = () => {
                             {m.user?.name} ({m.role})
                           </span>
                         ))}
-                        {p.members?.length === 0 && <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Unassigned</span>}
                       </div>
                     </div>
                   </div>
@@ -644,7 +1117,6 @@ const Dashboard = () => {
                   </div>
                 </div>
                 
-                {/* Milestone additions inside project forms */}
                 <div style={{ marginBottom: '1rem', border: '1px solid #cbd5e1', padding: '0.75rem', borderRadius: '6px' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Add Milestone Tasks</label>
                   <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -655,12 +1127,12 @@ const Dashboard = () => {
                       onChange={(e) => setNewTaskInput(e.target.value)}
                       placeholder="e.g. Design Database Models"
                     />
-                    <button type="button" onClick={handleAddTaskToForm} className="btn btn-secondary">Add</button>
+                    <button type="button" onClick={handleAddMilestoneToForm} className="btn btn-secondary">Add</button>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                     {projectForm.tasks.map((t, i) => (
                       <span key={i} className="badge badge-completed" style={{ textTransform: 'none' }}>
-                        🏁 {t}
+                        {t}
                       </span>
                     ))}
                   </div>
@@ -701,11 +1173,11 @@ const Dashboard = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <div>
                   <h1 style={{ marginBottom: '0.25rem' }}>Employee Directory</h1>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Review corporate hierarchy and active employee accounts.</p>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Review corporate hierarchy, contact details, and professional mappings.</p>
                 </div>
                 {user.role === 'ADMIN' && (
                   <button onClick={() => setActiveTab('create-employee')} className="btn btn-primary" style={{ fontWeight: 600 }}>
-                    ➕ Add Personnel
+                    Add Personnel
                   </button>
                 )}
               </div>
@@ -718,6 +1190,8 @@ const Dashboard = () => {
                       <th>Email</th>
                       <th>Role</th>
                       <th>Department</th>
+                      <th>Phone Number</th>
+                      <th>LinkedIn Profile</th>
                       <th>Reporting Manager</th>
                     </tr>
                   </thead>
@@ -732,6 +1206,27 @@ const Dashboard = () => {
                           </span>
                         </td>
                         <td>{emp.department || 'N/A'}</td>
+                        <td className="metric-value">{emp.phone || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Not provided</span>}</td>
+                        <td>
+                          {emp.linkedin ? (
+                            <a 
+                              href={emp.linkedin} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              style={{ 
+                                color: '#1d4ed8', 
+                                textDecoration: 'none', 
+                                fontWeight: 'bold',
+                                fontSize: '0.8rem',
+                                borderBottom: '1px solid #1d4ed8'
+                              }}
+                            >
+                              View Profile
+                            </a>
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Not connected</span>
+                          )}
+                        </td>
                         <td>{emp.manager?.name || <span style={{ color: '#94a3b8' }}>--</span>}</td>
                       </tr>
                     ))}
@@ -800,6 +1295,30 @@ const Dashboard = () => {
                     />
                   </div>
                 </div>
+                
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Phone Number</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={employeeForm.phone}
+                      onChange={(e) => setEmployeeForm({ ...employeeForm, phone: e.target.value })}
+                      placeholder="+1 (555) 012-3456"
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>LinkedIn URL</label>
+                    <input
+                      type="url"
+                      className="form-input"
+                      value={employeeForm.linkedin}
+                      onChange={(e) => setEmployeeForm({ ...employeeForm, linkedin: e.target.value })}
+                      placeholder="https://linkedin.com/in/username"
+                    />
+                  </div>
+                </div>
+
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Reporting Manager</label>
                   <select
@@ -827,19 +1346,32 @@ const Dashboard = () => {
               <h1>Competency Matrix Appraisal</h1>
               <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1.25rem' }}>Commit skill performance ratings directly to the database.</p>
               <form onSubmit={handleAddReview}>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Select Employee</label>
-                  <select
-                    className="form-input"
-                    value={reviewForm.employeeId}
-                    onChange={(e) => setReviewForm({ ...reviewForm, employeeId: e.target.value })}
-                    required
-                  >
-                    <option value="">Choose User...</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.name} ({emp.department || 'N/A'})</option>
-                    ))}
-                  </select>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Select Employee</label>
+                    <select
+                      className="form-input"
+                      value={reviewForm.employeeId}
+                      onChange={(e) => setReviewForm({ ...reviewForm, employeeId: e.target.value })}
+                      required
+                    >
+                      <option value="">Choose User...</option>
+                      {employees.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.name} ({emp.department || 'N/A'})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Review Cycle</label>
+                    <select
+                      className="form-input"
+                      value={reviewForm.reviewType}
+                      onChange={(e) => setReviewForm({ ...reviewForm, reviewType: e.target.value })}
+                    >
+                      <option value="MONTHLY">MONTHLY</option>
+                      <option value="QUARTERLY">QUARTERLY</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.25rem' }}>
@@ -862,6 +1394,21 @@ const Dashboard = () => {
                   ))}
                 </div>
 
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>KPI Accomplishment Score (0-100)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      min="0"
+                      max="100"
+                      value={reviewForm.kpiScore}
+                      onChange={(e) => setReviewForm({ ...reviewForm, kpiScore: Number(e.target.value) })}
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Review Comments</label>
                   <textarea
@@ -880,7 +1427,70 @@ const Dashboard = () => {
             </div>
           )}
 
-          {/* TAB 5: ATTENDANCE LOGS */}
+          {/* TAB 5: REPORTS & ANALYTICS MODULE */}
+          {activeTab === 'reports' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h1 style={{ marginBottom: '0.25rem' }}>Reports and Visual Analytics</h1>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Export corporate summaries and evaluate productivity trends.</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => triggerMockExport('PDF')} className="btn btn-success">
+                    Export PDF
+                  </button>
+                  <button onClick={() => triggerMockExport('Excel')} className="btn btn-secondary">
+                    Export Excel
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid-dashboard">
+                <div className="card" style={{ gridColumn: 'span 2' }}>
+                  <h2>Task Completion Efficiency</h2>
+                  <div style={{ padding: '1.5rem 0', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div className="clock-time" style={{ color: '#16a34a' }}>
+                        {tasks.filter(t => t.status === 'COMPLETED').length}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Completed Tasks</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div className="clock-time" style={{ color: '#b91c1c' }}>
+                        {tasks.filter(t => t.status !== 'COMPLETED').length}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Pending Tasks</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div className="clock-time" style={{ color: '#1d4ed8' }}>
+                        {tasks.length > 0 ? `${Math.round((tasks.filter(t => t.status === 'COMPLETED').length / tasks.length) * 100)}%` : '0%'}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Completion Ratio</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h2>Strategic Goals Achievement</h2>
+                  <div style={{ padding: '1rem 0' }}>
+                    {goals.map((g) => (
+                      <div key={g.id} style={{ marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#475569', marginBottom: '0.25rem' }}>
+                          <span>{g.title}</span>
+                          <span className="metric-value">{g.completion}%</span>
+                        </div>
+                        <div style={{ width: '100%', backgroundColor: '#e2e8f0', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: `${g.completion}%`, backgroundColor: '#15803d', height: '100%' }}></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: ATTENDANCE LOGS */}
           {activeTab === 'attendance' && (
             <div>
               <div style={{ marginBottom: '1.5rem' }}>
@@ -911,11 +1521,6 @@ const Dashboard = () => {
                         </td>
                       </tr>
                     ))}
-                    {attendance.length === 0 && (
-                      <tr>
-                        <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>No presence logs found in the database.</td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </div>

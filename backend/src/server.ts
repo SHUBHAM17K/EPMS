@@ -6,6 +6,8 @@ import employeeRoutes from './routes/employeeRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
+import goalRoutes from './routes/goalRoutes.js';
 
 dotenv.config();
 
@@ -20,9 +22,11 @@ app.use('/api/v1/employees', employeeRoutes);
 app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/attendance', attendanceRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
+app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/goals', goalRoutes);
 
 app.get('/api/v1', (req: Request, res: Response) => {
-  res.json({ message: 'Employee Performance Management System API is running...' });
+  res.json({ message: 'Axiora EPMS Enterprise API is running...' });
 });
 
 // 404 handler
