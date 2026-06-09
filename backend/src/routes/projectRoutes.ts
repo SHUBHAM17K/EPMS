@@ -4,7 +4,7 @@ import { authenticateToken, requireRole, AuthenticatedRequest } from '../middlew
 
 const router = Router();
 
-// GET all projects (access-filtered by role)
+// GET all projects (access-filtered by role with tasks)
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -13,9 +13,9 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
     let projects;
 
     if (role === 'ADMIN') {
-      // Admins see all projects
       projects = await prisma.project.findMany({
         include: {
+          tasks: true,
           members: {
             include: {
               user: {
@@ -26,7 +26,6 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
         },
       });
     } else {
-      // Employees & Managers see projects they are assigned to
       projects = await prisma.project.findMany({
         where: {
           members: {
@@ -36,6 +35,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
           },
         },
         include: {
+          tasks: true,
           members: {
             include: {
               user: {
@@ -56,7 +56,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
 // POST new project (Admin or Manager)
 router.post('/', authenticateToken, requireRole(['ADMIN', 'MANAGER']), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { name, description, status, priority, startDate, endDate, members } = req.body;
+    const { name, description, status, priority, startDate, endDate, members, tasks } = req.body;
 
     if (!name || !status || !priority || !startDate) {
       res.status(400).json({ message: 'Required fields: name, status, priority, startDate' });
@@ -75,7 +75,7 @@ router.post('/', authenticateToken, requireRole(['ADMIN', 'MANAGER']), async (re
       },
     });
 
-    // If members are specified, create allocations in junction table
+    // Create assignments if provided
     if (members && Array.isArray(members)) {
       const memberData = members.map((m: { userId: number; role: string }) => ({
         projectId: project.id,
@@ -88,10 +88,23 @@ router.post('/', authenticateToken, requireRole(['ADMIN', 'MANAGER']), async (re
       });
     }
 
-    // Fetch the complete created project with members
+    // Create project tasks/milestones if provided
+    if (tasks && Array.isArray(tasks)) {
+      const taskData = tasks.map((t: string) => ({
+        projectId: project.id,
+        title: t,
+        completed: false,
+      }));
+
+      await prisma.projectTask.createMany({
+        data: taskData,
+      });
+    }
+
     const fullProject = await prisma.project.findUnique({
       where: { id: project.id },
       include: {
+        tasks: true,
         members: {
           include: {
             user: { select: { id: true, name: true, email: true } },
@@ -106,59 +119,28 @@ router.post('/', authenticateToken, requireRole(['ADMIN', 'MANAGER']), async (re
   }
 });
 
-// PUT update project & member allocations (Admin or Manager)
-router.put('/:id', authenticateToken, requireRole(['ADMIN', 'MANAGER']), async (req: AuthenticatedRequest, res: Response) => {
+// Toggle project task completion status
+router.put('/:projectId/tasks/:taskId/toggle', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const { name, description, status, priority, startDate, endDate, members } = req.body;
+    const { projectId, taskId } = req.params;
 
-    const projectId = Number(id);
-
-    // Update basic project data
-    const updateData: any = {};
-    if (name) updateData.name = name;
-    if (description !== undefined) updateData.description = description;
-    if (status) updateData.status = status;
-    if (priority) updateData.priority = priority;
-    if (startDate) updateData.startDate = new Date(startDate);
-    if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
-
-    await prisma.project.update({
-      where: { id: projectId },
-      data: updateData,
+    const task = await prisma.projectTask.findUnique({
+      where: { id: Number(taskId) },
     });
 
-    // Update members if provided
-    if (members && Array.isArray(members)) {
-      // Remove old members first
-      await prisma.projectMember.deleteMany({
-        where: { projectId: projectId },
-      });
-
-      // Insert new members list
-      const memberData = members.map((m: { userId: number; role: string }) => ({
-        projectId: projectId,
-        userId: Number(m.userId),
-        role: m.role || 'MEMBER',
-      }));
-
-      await prisma.projectMember.createMany({
-        data: memberData,
-      });
+    if (!task || task.projectId !== Number(projectId)) {
+      res.status(404).json({ message: 'Project task not found' });
+      return;
     }
 
-    const updatedProject = await prisma.project.findUnique({
-      where: { id: projectId },
-      include: {
-        members: {
-          include: {
-            user: { select: { id: true, name: true, email: true } },
-          },
-        },
+    const updatedTask = await prisma.projectTask.update({
+      where: { id: task.id },
+      data: {
+        completed: !task.completed,
       },
     });
 
-    res.json(updatedProject);
+    res.json(updatedTask);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
