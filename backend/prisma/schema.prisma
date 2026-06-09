@@ -1,0 +1,79 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                 Int                 @id @default(autoincrement())
+  email              String              @unique
+  password           String
+  name               String
+  role               String              // "ADMIN", "MANAGER", "EMPLOYEE"
+  department         String?
+  isActive           Boolean             @default(true)
+  managerId          Int?
+  manager            User?               @relation("OrganizationHierarchy", fields: [managerId], references: [id])
+  subordinates       User[]              @relation("OrganizationHierarchy")
+  projectMemberships ProjectMember[]
+  attendanceRecords  Attendance[]
+  reviewsReceived    PerformanceReview[] @relation("EmployeeReviews")
+  reviewsGiven       PerformanceReview[] @relation("ReviewerReviews")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model Project {
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String?
+  status      String          // "ACTIVE", "ON_HOLD", "COMPLETED", "ARCHIVED"
+  priority    String          // "LOW", "MEDIUM", "HIGH"
+  startDate   DateTime
+  endDate     DateTime?
+  members     ProjectMember[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model ProjectMember {
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  projectId Int
+  role      String  // "LEAD", "MEMBER"
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+model Attendance {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  checkDate   String    // "YYYY-MM-DD" to enforce single daily record
+  checkIn     DateTime
+  checkOut    DateTime?
+  hoursWorked Float     @default(0)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, checkDate])
+}
+
+model PerformanceReview {
+  id            Int      @id @default(autoincrement())
+  employeeId    Int
+  reviewerId    Int
+  communication Int      // 1 to 5
+  technical     Int      // 1 to 5
+  delivery      Int      // 1 to 5
+  teamwork      Int      // 1 to 5
+  leadership    Int      // 1 to 5
+  overallScore  Float
+  comments      String?
+  employee      User     @relation("EmployeeReviews", fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewer      User     @relation("ReviewerReviews", fields: [reviewerId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+}
