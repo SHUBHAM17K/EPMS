@@ -30,3 +30,7 @@ out/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Unrelated folders
+shubham-labs/
+scratch/
