@@ -15,7 +15,7 @@ const Login = () => {
   const { login, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const canvasRef = useRef(null);
-  const mouseRef = useRef({ x: null, y: null, radius: 150 });
+  const mouseRef = useRef({ x: null, y: null, radius: 160 });
 
   const handleRoleSelect = (role) => {
     setSelectedRole(role);
@@ -37,9 +37,8 @@ const Login = () => {
     }
   }, [user, navigate]);
 
-  // Intro animation sequence timer
   useEffect(() => {
-    // Play intro for 3 seconds then show login portal
+    // Play intro for 3.2 seconds then show login portal
     const timer1 = setTimeout(() => setIntroStep(1), 3200);
     return () => clearTimeout(timer1);
   }, []);
@@ -73,26 +72,25 @@ const Login = () => {
     window.addEventListener('mouseleave', handleMouseLeave);
 
     const particles = [];
-    const particleCount = 75;
+    const particleCount = 80;
 
     class Particle {
       constructor() {
         this.x = Math.random() * width;
         this.y = Math.random() * height;
-        this.vx = Math.random() * 1.2 - 0.6;
-        this.vy = Math.random() * 1.2 - 0.6;
-        this.radius = Math.random() * 2.5 + 1.5;
+        this.vx = Math.random() * 1.0 - 0.5;
+        this.vy = Math.random() * 1.0 - 0.5;
+        this.radius = Math.random() * 2.0 + 1.0;
       }
       update() {
-        // Interactivity with mouse (attraction)
         if (mouseRef.current.x !== null) {
           const dx = mouseRef.current.x - this.x;
           const dy = mouseRef.current.y - this.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
           if (distance < mouseRef.current.radius) {
             const force = (mouseRef.current.radius - distance) / mouseRef.current.radius;
-            this.x += (dx / distance) * force * 1.5;
-            this.y += (dy / distance) * force * 1.5;
+            this.x += (dx / distance) * force * 1.8;
+            this.y += (dy / distance) * force * 1.8;
           }
         }
 
@@ -105,7 +103,7 @@ const Login = () => {
       draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = selectedRole === 'ADMIN' ? 'rgba(225, 29, 72, 0.4)' : selectedRole === 'MANAGER' ? 'rgba(217, 119, 6, 0.4)' : 'rgba(29, 78, 216, 0.4)';
+        ctx.fillStyle = selectedRole === 'ADMIN' ? 'rgba(6, 182, 212, 0.45)' : selectedRole === 'MANAGER' ? 'rgba(20, 184, 166, 0.45)' : 'rgba(16, 185, 129, 0.45)';
         ctx.fill();
       }
     }
@@ -117,7 +115,6 @@ const Login = () => {
     const render = () => {
       ctx.clearRect(0, 0, width, height);
       
-      // Draw lines connecting close particles (Plexus/Constellation effect)
       for (let i = 0; i < particles.length; i++) {
         particles[i].update();
         particles[i].draw();
@@ -127,17 +124,17 @@ const Login = () => {
           const dy = particles[i].y - particles[j].y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < 110) {
+          if (distance < 115) {
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            const alpha = (110 - distance) / 110 * 0.15;
+            const alpha = (115 - distance) / 115 * 0.22;
             
             ctx.strokeStyle = selectedRole === 'ADMIN' 
-              ? `rgba(225, 29, 72, ${alpha})` 
+              ? `rgba(6, 182, 212, ${alpha})` 
               : selectedRole === 'MANAGER' 
-              ? `rgba(217, 119, 6, ${alpha})` 
-              : `rgba(29, 78, 216, ${alpha})`;
+              ? `rgba(20, 184, 166, ${alpha})` 
+              : `rgba(16, 185, 129, ${alpha})`;
               
             ctx.lineWidth = 1;
             ctx.stroke();
@@ -174,13 +171,13 @@ const Login = () => {
   };
 
   const getThemeColor = () => {
-    if (selectedRole === 'ADMIN') return '#e11d48'; // Crimson
-    if (selectedRole === 'MANAGER') return '#d97706'; // Amber
-    return '#1d4ed8'; // Cobalt Blue
+    if (selectedRole === 'ADMIN') return '#06b6d4'; // High-Tech Cyan
+    if (selectedRole === 'MANAGER') return '#14b8a6'; // Futuristic Teal
+    return '#10b981'; // Professional Emerald Green
   };
 
   return (
-    <div className="login-wrapper" style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0b0f19' }}>
+    <div className="login-wrapper" style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#030712' }}>
       <canvas
         ref={canvasRef}
         style={{
@@ -194,12 +191,12 @@ const Login = () => {
         }}
       />
       
-      {/* Dynamic Background Glow Rings */}
-      <div className="login-bg-shape shape-1" style={{ opacity: 0.1, mixBlendMode: 'screen', filter: 'blur(100px)', background: `radial-gradient(circle, ${getThemeColor()} 0%, transparent 70%)` }}></div>
-      <div className="login-bg-shape shape-2" style={{ opacity: 0.08, mixBlendMode: 'screen', filter: 'blur(120px)', background: `radial-gradient(circle, ${getThemeColor()} 0%, transparent 70%)` }}></div>
+      {/* Cool Neon Glow Backdrop Spheres */}
+      <div className="login-bg-shape shape-1" style={{ opacity: 0.12, mixBlendMode: 'screen', filter: 'blur(120px)', background: `radial-gradient(circle, ${getThemeColor()} 0%, transparent 70%)` }}></div>
+      <div className="login-bg-shape shape-2" style={{ opacity: 0.1, mixBlendMode: 'screen', filter: 'blur(150px)', background: `radial-gradient(circle, ${getThemeColor()} 0%, transparent 70%)` }}></div>
 
       {introStep === 0 ? (
-        /* INTRO ANIMATION: UPES Portal Inspired futuristic loading screen */
+        /* Loader screen with orbiting particle dots */
         <div style={{
           textAlign: 'center',
           zIndex: 10,
@@ -209,11 +206,11 @@ const Login = () => {
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          {/* Logo outline draw animation */}
-          <div style={{ position: 'relative', marginBottom: '2rem' }}>
-            <svg width="100" height="100" viewBox="0 0 100 100" className="logo-svg">
+          <div style={{ position: 'relative', width: '130px', height: '130px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+            {/* SVG Vector Logo */}
+            <svg width="90" height="90" viewBox="0 0 100 100" style={{ zIndex: 2 }}>
               <polygon 
-                points="50,10 90,80 10,80" 
+                points="50,15 88,80 12,80" 
                 fill="none" 
                 stroke={getThemeColor()} 
                 strokeWidth="4" 
@@ -225,11 +222,11 @@ const Login = () => {
               />
               <circle 
                 cx="50" 
-                cy="52" 
-                r="12" 
+                cy="54" 
+                r="11" 
                 fill="none"
                 stroke={getThemeColor()}
-                strokeWidth="3"
+                strokeWidth="3.5"
                 strokeDasharray="100"
                 strokeDashoffset="100"
                 style={{
@@ -237,40 +234,73 @@ const Login = () => {
                 }}
               />
             </svg>
+            
+            {/* Pulsing center node */}
             <div style={{
               position: 'absolute',
-              top: '48%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '8px',
-              height: '8px',
+              width: '10px',
+              height: '10px',
               borderRadius: '50%',
               backgroundColor: '#ffffff',
-              boxShadow: `0 0 15px 5px ${getThemeColor()}`,
-              animation: 'pulseGlow 1.5s infinite alternate'
+              boxShadow: `0 0 20px 6px ${getThemeColor()}`,
+              animation: 'pulseGlow 1.5s infinite alternate',
+              zIndex: 3
             }}></div>
+
+            {/* Orbiting ring of high-fidelity glowing dots */}
+            <div style={{
+              position: 'absolute',
+              width: '120px',
+              height: '120px',
+              animation: 'spinOrbit 4.5s linear infinite',
+              zIndex: 1
+            }}>
+              {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, idx) => {
+                const rad = (angle * Math.PI) / 180;
+                const x = 50 + 52 * Math.cos(rad);
+                const y = 50 + 52 * Math.sin(rad);
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      position: 'absolute',
+                      left: `${x}%`,
+                      top: `${y}%`,
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: getThemeColor(),
+                      boxShadow: `0 0 10px 2px ${getThemeColor()}`,
+                      opacity: 0.15 + (idx * 0.1),
+                      transform: 'translate(-50%, -50%)',
+                      animation: 'pulseDots 1s infinite alternate',
+                      animationDelay: `${idx * 0.1}s`
+                    }}
+                  />
+                );
+              })}
+            </div>
           </div>
 
-          {/* Lettering reveal with expanding spacing */}
           <h1 style={{
             fontSize: '2.5rem',
             fontWeight: 900,
             color: '#ffffff',
-            letterSpacing: '0.4em',
+            letterSpacing: '0.45em',
             margin: 0,
             textTransform: 'uppercase',
             animation: 'letterReveal 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-            textShadow: `0 0 20px rgba(255,255,255,0.2), 0 0 40px ${getThemeColor()}80`
+            textShadow: `0 0 30px ${getThemeColor()}60`
           }}>
             AXIORA
           </h1>
           
           <h3 style={{
-            fontSize: '0.9rem',
-            fontWeight: 600,
-            color: '#64748b',
-            letterSpacing: '0.8em',
-            marginTop: '0.75rem',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            color: '#94a3b8',
+            letterSpacing: '0.85em',
+            marginTop: '0.8rem',
             textTransform: 'uppercase',
             opacity: 0,
             animation: 'fadeInUp 1.5s cubic-bezier(0.16, 1, 0.3, 1) 1.2s forwards'
@@ -279,10 +309,10 @@ const Login = () => {
           </h3>
 
           <div style={{
-            width: '120px',
+            width: '130px',
             height: '2px',
             background: `linear-gradient(90deg, transparent, ${getThemeColor()}, transparent)`,
-            marginTop: '2rem',
+            marginTop: '2.5rem',
             position: 'relative',
             overflow: 'hidden'
           }}>
@@ -298,23 +328,23 @@ const Login = () => {
           </div>
         </div>
       ) : (
-        /* MAIN LOGIN PORTAL CARD: Glassmorphic Fade In */
+        /* MAIN LOGIN PORTAL CARD: Glassmorphic Obsidian Teal */
         <div 
           className="login-card" 
           style={{ 
             zIndex: 1, 
             borderTop: `4px solid ${getThemeColor()}`, 
-            backgroundColor: 'rgba(15, 23, 42, 0.85)',
-            backdropFilter: 'blur(16px)',
+            backgroundColor: 'rgba(9, 13, 22, 0.85)',
+            backdropFilter: 'blur(20px)',
             borderLeft: '1px solid rgba(255,255,255,0.06)',
             borderRight: '1px solid rgba(255,255,255,0.06)',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
             transition: 'border-color 0.4s ease',
             animation: 'cardSlideUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
             maxWidth: '430px',
             width: '100%',
-            padding: '2.5rem 2rem',
+            padding: '2.5rem 2.25rem',
             borderRadius: '16px'
           }}
         >
@@ -324,7 +354,7 @@ const Login = () => {
             onMouseLeave={() => setIsHoveredLogo(false)}
             style={{ 
               textAlign: 'center', 
-              marginBottom: '2rem', 
+              marginBottom: '2.25rem', 
               cursor: 'pointer',
               padding: '0.5rem',
               borderRadius: '12px',
@@ -332,43 +362,43 @@ const Login = () => {
               background: isHoveredLogo ? 'rgba(255,255,255,0.02)' : 'transparent'
             }}
           >
-            <svg 
-              width="45" 
-              height="45" 
-              viewBox="0 0 100 100" 
-              style={{ 
-                margin: '0 auto 0.5rem', 
-                display: 'block',
-                transform: isHoveredLogo ? 'rotate(180deg) scale(1.1)' : 'rotate(0deg) scale(1)',
-                transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              }}
-            >
-              <polygon 
-                points="50,15 90,85 10,85" 
-                fill="none" 
-                stroke={getThemeColor()} 
-                strokeWidth="6" 
-                strokeLinejoin="round"
-                style={{ transition: 'stroke 0.4s ease' }}
-              />
-              <circle 
-                cx="50" 
-                cy="55" 
-                r="15" 
-                fill={getThemeColor()}
+            <div style={{ position: 'relative', width: '50px', height: '50px', margin: '0 auto 0.5rem' }}>
+              <svg 
+                width="50" 
+                height="50" 
+                viewBox="0 0 100 100" 
                 style={{ 
-                  transition: 'all 0.4s ease',
-                  opacity: isHoveredLogo ? 0.8 : 1,
-                  transform: isHoveredLogo ? 'translateY(-3px)' : 'translateY(0)'
+                  transform: isHoveredLogo ? 'rotate(180deg) scale(1.1)' : 'rotate(0deg) scale(1)',
+                  transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 }}
-              />
-            </svg>
+              >
+                <polygon 
+                  points="50,15 90,85 10,85" 
+                  fill="none" 
+                  stroke={getThemeColor()} 
+                  strokeWidth="6" 
+                  strokeLinejoin="round"
+                  style={{ transition: 'stroke 0.4s ease' }}
+                />
+                <circle 
+                  cx="50" 
+                  cy="55" 
+                  r="15" 
+                  fill={getThemeColor()}
+                  style={{ 
+                    transition: 'all 0.4s ease',
+                    opacity: isHoveredLogo ? 0.8 : 1,
+                    transform: isHoveredLogo ? 'translateY(-3px)' : 'translateY(0)'
+                  }}
+                />
+              </svg>
+            </div>
 
             <h2 style={{ 
-              fontSize: '1.35rem', 
-              fontWeight: 850, 
+              fontSize: '1.4rem', 
+              fontWeight: 900, 
               color: '#ffffff', 
-              letterSpacing: '0.15em',
+              letterSpacing: '0.12em',
               textTransform: 'uppercase',
               margin: '0.5rem 0 0 0',
               transition: 'color 0.3s ease',
@@ -376,13 +406,13 @@ const Login = () => {
             }}>
               AXIORA TECHNOLOGIES
             </h2>
-            <p style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: '0.25rem', margin: 0 }}>
+            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.2rem', margin: 0 }}>
               Performance Management Suite
             </p>
           </div>
 
           {/* Role selector panel */}
-          <div style={{ display: 'flex', gap: '0.35rem', backgroundColor: 'rgba(15, 23, 42, 0.5)', padding: '0.35rem', borderRadius: '8px', marginBottom: '1.75rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ display: 'flex', gap: '0.35rem', backgroundColor: 'rgba(3, 7, 18, 0.6)', padding: '0.35rem', borderRadius: '8px', marginBottom: '1.75rem', border: '1px solid rgba(255,255,255,0.05)' }}>
             {['EMPLOYEE', 'MANAGER', 'ADMIN'].map((role) => (
               <button
                 key={role}
@@ -397,9 +427,9 @@ const Login = () => {
                   fontWeight: 700,
                   cursor: 'pointer',
                   backgroundColor: selectedRole === role ? getThemeColor() : 'transparent',
-                  color: selectedRole === role ? '#ffffff' : '#94a3b8',
+                  color: selectedRole === role ? '#ffffff' : '#64748b',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: selectedRole === role ? `0 2px 8px ${getThemeColor()}40` : 'none'
+                  boxShadow: selectedRole === role ? `0 2px 10px ${getThemeColor()}40` : 'none'
                 }}
               >
                 {role}
@@ -435,7 +465,7 @@ const Login = () => {
                 placeholder="identity@axiora.com"
                 style={{ 
                   padding: '0.75rem 1rem', 
-                  backgroundColor: 'rgba(15, 23, 42, 0.4)', 
+                  backgroundColor: 'rgba(3, 7, 18, 0.5)', 
                   border: '1px solid rgba(255,255,255,0.1)', 
                   color: '#ffffff',
                   borderRadius: '8px',
@@ -458,7 +488,7 @@ const Login = () => {
                 placeholder="••••••••"
                 style={{ 
                   padding: '0.75rem 2.5rem 0.75rem 1rem', 
-                  backgroundColor: 'rgba(15, 23, 42, 0.4)', 
+                  backgroundColor: 'rgba(3, 7, 18, 0.5)', 
                   border: '1px solid rgba(255,255,255,0.1)', 
                   color: '#ffffff',
                   borderRadius: '8px',
@@ -503,12 +533,12 @@ const Login = () => {
               }}
               disabled={submitting}
             >
-              {submitting ? 'Authenticating Security Matrix...' : 'REQUEST PORTAL ACCESS'}
+              {submitting ? 'AUTHENTICATING ENCRYPTION...' : 'REQUEST SUITE ACCESS'}
             </button>
           </form>
 
           {/* Seed Accounts Helper */}
-          <div style={{ marginTop: '2rem', padding: '1rem', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', backgroundColor: 'rgba(15, 23, 42, 0.3)' }}>
+          <div style={{ marginTop: '2rem', padding: '1rem', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', backgroundColor: 'rgba(3, 7, 18, 0.4)' }}>
             <p style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
               Authorized Portal Credentials:
             </p>
@@ -546,12 +576,12 @@ const Login = () => {
         }
         @keyframes letterReveal {
           from {
-            letter-spacing: -0.1em;
+            letter-spacing: -0.15em;
             opacity: 0;
             transform: scale(0.85);
           }
           to {
-            letter-spacing: 0.4em;
+            letter-spacing: 0.45em;
             opacity: 1;
             transform: scale(1);
           }
@@ -583,6 +613,14 @@ const Login = () => {
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+        @keyframes spinOrbit {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulseDots {
+          from { transform: translate(-50%, -50%) scale(0.8); opacity: 0.4; }
+          to { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
         }
       `}</style>
     </div>
