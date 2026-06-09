@@ -635,6 +635,29 @@ const Dashboard = () => {
 
               {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
                 <div className="grid-dashboard">
+                  {/* Presence Control Card */}
+                  <div className={`card clock-card ${clockStatus?.checkIn && !clockStatus?.checkOut ? 'checked-in' : 'checked-out'}`} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '1.25rem', borderLeft: '4px solid #10b981' }}>
+                    <div>
+                      <h2 style={{ color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Personal Presence Control</h2>
+                      <div className="clock-time" style={{ fontSize: '1.8rem', color: clockStatus?.checkIn && !clockStatus?.checkOut ? '#059669' : '#475569', margin: '0.5rem 0' }}>
+                        {clockStatus?.checkIn && !clockStatus?.checkOut ? 'CLOCKED IN' : 'OFF DUTY'}
+                      </div>
+                      {clockStatus?.checkIn && (
+                        <p style={{ fontSize: '0.75rem', color: '#475569', margin: 0 }}>
+                          Logged: <span className="time-stamp" style={{ fontWeight: 'bold' }}>{new Date(clockStatus.checkIn).toLocaleTimeString()}</span>
+                        </p>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                      <button onClick={handleCheckIn} className="btn btn-success btn-sm" style={{ flex: 1, padding: '0.4rem 0', fontSize: '0.75rem', fontWeight: 600 }} disabled={!!clockStatus?.checkIn}>
+                        Check In
+                      </button>
+                      <button onClick={handleCheckOut} className="btn btn-secondary btn-sm" style={{ flex: 1, padding: '0.4rem 0', fontSize: '0.75rem', fontWeight: 600 }} disabled={!clockStatus?.checkIn || !!clockStatus?.checkOut}>
+                        Check Out
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="card" style={{ borderLeft: '4px solid #1d4ed8' }}>
                     <h2 style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 600 }}>Active Personnel</h2>
                     <div className="clock-time" style={{ fontSize: '2.5rem', color: '#1e293b' }}>
@@ -1514,10 +1537,10 @@ const Dashboard = () => {
                       <tr key={rec.id}>
                         <td style={{ fontWeight: 600 }}>{rec.user?.name || 'Self'}</td>
                         <td className="date-string">{rec.checkDate}</td>
-                        <td className="time-stamp">{new Date(rec.checkIn).toLocaleTimeString()}</td>
-                        <td className="time-stamp">{rec.checkOut ? new Date(rec.checkOut).toLocaleTimeString() : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Active</span>}</td>
-                        <td className="metric-value" style={{ fontWeight: 'bold', color: rec.hoursWorked >= 8 ? '#15803d' : '#d97706' }}>
-                          {rec.hoursWorked} hrs
+                        <td className="time-stamp">{rec.checkIn ? new Date(rec.checkIn).toLocaleTimeString() : '--'}</td>
+                        <td className="time-stamp">{rec.checkOut ? new Date(rec.checkOut).toLocaleTimeString() : <span style={{ color: '#059669', fontWeight: 600, backgroundColor: '#d1fae5', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem' }}>Active Session</span>}</td>
+                        <td className="metric-value" style={{ fontWeight: 'bold', color: rec.checkOut ? (rec.hoursWorked >= 8 ? '#15803d' : '#d97706') : '#1d4ed8' }}>
+                          {rec.checkOut ? `${rec.hoursWorked} hrs` : '--'}
                         </td>
                       </tr>
                     ))}
