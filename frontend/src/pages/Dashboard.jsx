@@ -390,9 +390,9 @@ const Dashboard = () => {
       
       {/* Sidebar Navigation */}
       <div className={`sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`} style={{ transition: 'width 0.2s ease' }}>
-        <div style={{ height: '54px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', padding: '0 1rem', justifyContent: sidebarCollapsed ? 'center' : 'space-between', backgroundColor: '#1e3a8a' }}>
-          {!sidebarCollapsed && <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.85rem', letterSpacing: '0.05em' }}>AXIORA WORKSPACE</span>}
-          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ffffff', fontSize: '1rem' }}>
+        <div style={{ height: '54px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', padding: '0 1rem', justifyContent: sidebarCollapsed ? 'center' : 'space-between', backgroundColor: '#ffffff' }}>
+          {!sidebarCollapsed && <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.85rem', letterSpacing: '0.05em' }}>AXIORA WORKSPACE</span>}
+          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '1rem' }}>
             {sidebarCollapsed ? '>>' : '<<'}
           </button>
         </div>

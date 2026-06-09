@@ -43,7 +43,7 @@ const Login = () => {
     return () => clearTimeout(timer1);
   }, []);
 
-  // High performance Interactive Plexus Constellation Animation
+  // High performance Interactive Plexus Constellation Animation (adapted for light theme)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -78,9 +78,9 @@ const Login = () => {
       constructor() {
         this.x = Math.random() * width;
         this.y = Math.random() * height;
-        this.vx = Math.random() * 1.0 - 0.5;
-        this.vy = Math.random() * 1.0 - 0.5;
-        this.radius = Math.random() * 2.0 + 1.0;
+        this.vx = Math.random() * 0.8 - 0.4;
+        this.vy = Math.random() * 0.8 - 0.4;
+        this.radius = Math.random() * 2.0 + 1.2;
       }
       update() {
         if (mouseRef.current.x !== null) {
@@ -89,8 +89,8 @@ const Login = () => {
           const distance = Math.sqrt(dx * dx + dy * dy);
           if (distance < mouseRef.current.radius) {
             const force = (mouseRef.current.radius - distance) / mouseRef.current.radius;
-            this.x += (dx / distance) * force * 1.8;
-            this.y += (dy / distance) * force * 1.8;
+            this.x += (dx / distance) * force * 1.5;
+            this.y += (dy / distance) * force * 1.5;
           }
         }
 
@@ -103,7 +103,7 @@ const Login = () => {
       draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = selectedRole === 'ADMIN' ? 'rgba(6, 182, 212, 0.45)' : selectedRole === 'MANAGER' ? 'rgba(20, 184, 166, 0.45)' : 'rgba(16, 185, 129, 0.45)';
+        ctx.fillStyle = selectedRole === 'ADMIN' ? 'rgba(6, 182, 212, 0.6)' : selectedRole === 'MANAGER' ? 'rgba(20, 184, 166, 0.6)' : 'rgba(16, 185, 129, 0.6)';
         ctx.fill();
       }
     }
@@ -128,7 +128,7 @@ const Login = () => {
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            const alpha = (115 - distance) / 115 * 0.22;
+            const alpha = (115 - distance) / 115 * 0.28;
             
             ctx.strokeStyle = selectedRole === 'ADMIN' 
               ? `rgba(6, 182, 212, ${alpha})` 
@@ -177,7 +177,7 @@ const Login = () => {
   };
 
   return (
-    <div className="login-wrapper" style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#030712' }}>
+    <div className="login-wrapper" style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
       <canvas
         ref={canvasRef}
         style={{
@@ -191,12 +191,12 @@ const Login = () => {
         }}
       />
       
-      {/* Cool Neon Glow Backdrop Spheres */}
-      <div className="login-bg-shape shape-1" style={{ opacity: 0.12, mixBlendMode: 'screen', filter: 'blur(120px)', background: `radial-gradient(circle, ${getThemeColor()} 0%, transparent 70%)` }}></div>
-      <div className="login-bg-shape shape-2" style={{ opacity: 0.1, mixBlendMode: 'screen', filter: 'blur(150px)', background: `radial-gradient(circle, ${getThemeColor()} 0%, transparent 70%)` }}></div>
+      {/* Light glow backdrop rings */}
+      <div className="login-bg-shape shape-1" style={{ opacity: 0.08, filter: 'blur(100px)', background: `radial-gradient(circle, ${getThemeColor()} 0%, transparent 70%)` }}></div>
+      <div className="login-bg-shape shape-2" style={{ opacity: 0.05, filter: 'blur(130px)', background: `radial-gradient(circle, ${getThemeColor()} 0%, transparent 70%)` }}></div>
 
       {introStep === 0 ? (
-        /* Loader screen with orbiting particle dots */
+        /* Loader screen with orbiting particle dots (Light mode styling) */
         <div style={{
           textAlign: 'center',
           zIndex: 10,
@@ -241,7 +241,7 @@ const Login = () => {
               width: '10px',
               height: '10px',
               borderRadius: '50%',
-              backgroundColor: '#ffffff',
+              backgroundColor: getThemeColor(),
               boxShadow: `0 0 20px 6px ${getThemeColor()}`,
               animation: 'pulseGlow 1.5s infinite alternate',
               zIndex: 3
@@ -271,7 +271,7 @@ const Login = () => {
                       borderRadius: '50%',
                       backgroundColor: getThemeColor(),
                       boxShadow: `0 0 10px 2px ${getThemeColor()}`,
-                      opacity: 0.15 + (idx * 0.1),
+                      opacity: 0.3 + (idx * 0.1),
                       transform: 'translate(-50%, -50%)',
                       animation: 'pulseDots 1s infinite alternate',
                       animationDelay: `${idx * 0.1}s`
@@ -285,12 +285,12 @@ const Login = () => {
           <h1 style={{
             fontSize: '2.5rem',
             fontWeight: 900,
-            color: '#ffffff',
+            color: '#0f172a',
             letterSpacing: '0.45em',
             margin: 0,
             textTransform: 'uppercase',
             animation: 'letterReveal 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-            textShadow: `0 0 30px ${getThemeColor()}60`
+            textShadow: `0 0 20px rgba(0,0,0,0.05)`
           }}>
             AXIORA
           </h1>
@@ -298,7 +298,7 @@ const Login = () => {
           <h3 style={{
             fontSize: '0.85rem',
             fontWeight: 700,
-            color: '#94a3b8',
+            color: '#64748b',
             letterSpacing: '0.85em',
             marginTop: '0.8rem',
             textTransform: 'uppercase',
@@ -322,24 +322,24 @@ const Login = () => {
               left: '-100%',
               width: '100%',
               height: '100%',
-              background: 'linear-gradient(90deg, transparent, #ffffff, transparent)',
+              background: 'linear-gradient(90deg, transparent, #0f172a, transparent)',
               animation: 'scanBar 1.5s infinite linear'
             }}></div>
           </div>
         </div>
       ) : (
-        /* MAIN LOGIN PORTAL CARD: Glassmorphic Obsidian Teal */
+        /* MAIN LOGIN PORTAL CARD: Glassmorphic White Mode */
         <div 
           className="login-card" 
           style={{ 
             zIndex: 1, 
             borderTop: `4px solid ${getThemeColor()}`, 
-            backgroundColor: 'rgba(9, 13, 22, 0.85)',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(20px)',
-            borderLeft: '1px solid rgba(255,255,255,0.06)',
-            borderRight: '1px solid rgba(255,255,255,0.06)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
+            borderLeft: '1px solid rgba(255,255,255,0.8)',
+            borderRight: '1px solid rgba(255,255,255,0.8)',
+            borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
+            boxShadow: '0 20px 40px rgba(15, 23, 42, 0.08)',
             transition: 'border-color 0.4s ease',
             animation: 'cardSlideUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
             maxWidth: '430px',
@@ -359,7 +359,7 @@ const Login = () => {
               padding: '0.5rem',
               borderRadius: '12px',
               transition: 'all 0.3s ease',
-              background: isHoveredLogo ? 'rgba(255,255,255,0.02)' : 'transparent'
+              background: isHoveredLogo ? 'rgba(15, 23, 42, 0.02)' : 'transparent'
             }}
           >
             <div style={{ position: 'relative', width: '50px', height: '50px', margin: '0 auto 0.5rem' }}>
@@ -397,12 +397,12 @@ const Login = () => {
             <h2 style={{ 
               fontSize: '1.4rem', 
               fontWeight: 900, 
-              color: '#ffffff', 
+              color: '#0f172a', 
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
               margin: '0.5rem 0 0 0',
               transition: 'color 0.3s ease',
-              color: isHoveredLogo ? getThemeColor() : '#ffffff'
+              color: isHoveredLogo ? getThemeColor() : '#0f172a'
             }}>
               AXIORA TECHNOLOGIES
             </h2>
@@ -412,7 +412,7 @@ const Login = () => {
           </div>
 
           {/* Role selector panel */}
-          <div style={{ display: 'flex', gap: '0.35rem', backgroundColor: 'rgba(3, 7, 18, 0.6)', padding: '0.35rem', borderRadius: '8px', marginBottom: '1.75rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ display: 'flex', gap: '0.35rem', backgroundColor: '#f1f5f9', padding: '0.35rem', borderRadius: '8px', marginBottom: '1.75rem', border: '1px solid #e2e8f0' }}>
             {['EMPLOYEE', 'MANAGER', 'ADMIN'].map((role) => (
               <button
                 key={role}
@@ -429,7 +429,7 @@ const Login = () => {
                   backgroundColor: selectedRole === role ? getThemeColor() : 'transparent',
                   color: selectedRole === role ? '#ffffff' : '#64748b',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: selectedRole === role ? `0 2px 10px ${getThemeColor()}40` : 'none'
+                  boxShadow: selectedRole === role ? `0 2px 10px ${getThemeColor()}30` : 'none'
                 }}
               >
                 {role}
@@ -439,13 +439,13 @@ const Login = () => {
 
           {error && (
             <div style={{ 
-              backgroundColor: 'rgba(239, 68, 68, 0.15)', 
-              color: '#f87171', 
+              backgroundColor: '#fee2e2', 
+              color: '#ef4444', 
               padding: '0.75rem 1rem', 
               borderRadius: '8px', 
               fontSize: '0.8rem', 
               marginBottom: '1.5rem',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
+              border: '1px solid #fca5a5',
               animation: 'fadeIn 0.3s ease'
             }}>
               System Exception: {error}
@@ -454,7 +454,7 @@ const Login = () => {
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Corporate Identity Email
               </label>
               <input
@@ -465,9 +465,9 @@ const Login = () => {
                 placeholder="identity@axiora.com"
                 style={{ 
                   padding: '0.75rem 1rem', 
-                  backgroundColor: 'rgba(3, 7, 18, 0.5)', 
-                  border: '1px solid rgba(255,255,255,0.1)', 
-                  color: '#ffffff',
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid #cbd5e1', 
+                  color: '#0f172a',
                   borderRadius: '8px',
                   width: '100%',
                   outline: 'none'
@@ -477,7 +477,7 @@ const Login = () => {
             </div>
 
             <div style={{ marginBottom: '1.75rem', position: 'relative' }}>
-              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Security Cipher Code
               </label>
               <input
@@ -488,9 +488,9 @@ const Login = () => {
                 placeholder="••••••••"
                 style={{ 
                   padding: '0.75rem 2.5rem 0.75rem 1rem', 
-                  backgroundColor: 'rgba(3, 7, 18, 0.5)', 
-                  border: '1px solid rgba(255,255,255,0.1)', 
-                  color: '#ffffff',
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid #cbd5e1', 
+                  color: '#0f172a',
                   borderRadius: '8px',
                   width: '100%',
                   outline: 'none'
@@ -538,19 +538,19 @@ const Login = () => {
           </form>
 
           {/* Seed Accounts Helper */}
-          <div style={{ marginTop: '2rem', padding: '1rem', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', backgroundColor: 'rgba(3, 7, 18, 0.4)' }}>
+          <div style={{ marginTop: '2rem', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '10px', backgroundColor: '#f8fafc' }}>
             <p style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
               Authorized Portal Credentials:
             </p>
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace', lineHeight: 1.6 }}>
+            <div style={{ fontSize: '0.7rem', color: '#475569', fontFamily: 'monospace', lineHeight: 1.6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>ADMIN:</span> <span style={{ fontWeight: 600, color: '#ffffff' }}>admin@epms.com / admin123</span>
+                <span>ADMIN:</span> <span style={{ fontWeight: 600, color: '#0f172a' }}>admin@epms.com / admin123</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>MANAGER:</span> <span style={{ fontWeight: 600, color: '#ffffff' }}>manager@epms.com / manager123</span>
+                <span>MANAGER:</span> <span style={{ fontWeight: 600, color: '#0f172a' }}>manager@epms.com / manager123</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>EMPLOYEE:</span> <span style={{ fontWeight: 600, color: '#ffffff' }}>employee@epms.com / employee123</span>
+                <span>EMPLOYEE:</span> <span style={{ fontWeight: 600, color: '#0f172a' }}>employee@epms.com / employee123</span>
               </div>
             </div>
           </div>
@@ -619,7 +619,7 @@ const Login = () => {
           to { transform: rotate(360deg); }
         }
         @keyframes pulseDots {
-          from { transform: translate(-50%, -50%) scale(0.8); opacity: 0.4; }
+          from { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }
           to { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
         }
       `}</style>
