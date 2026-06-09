@@ -10,6 +10,7 @@ Welcome to the official documentation for the **Employee Performance Management 
 * **Core**: React 19 + TypeScript + Vite.
 * **Styling**: Modern, high-density Vanilla CSS with built-in micro-animations.
 * **Component Library**: Custom lightweight primitives.
+* **Interactive Animation**: High-performance Canvas Particles Background running on a continuous `requestAnimationFrame` loop with color variations matching user roles.
 * **Data Visualization**: React 19-compatible SVG-based **Radar Charts** (skill-set balances) and **Trend Line Charts** (evaluation metrics progression).
 
 ### 2. Backend
@@ -32,6 +33,8 @@ The SQLite schema represents the relational entities:
   - `id` / `name` / `description` / `status` / `priority` / `startDate` / `endDate`.
 * **ProjectMember** (Junction Table):
   - Maps Many-to-Many associations between Users and Projects.
+* **ProjectTask**:
+  - Maps project milestones and execution tasks. Toggled directly from the interface.
 * **Attendance**:
   - Enforces a unique composite constraint `[userId, checkDate]` to prevent dual check-ins on the same day.
   - Calculates and stores `hoursWorked` automatically upon Check-Out.
@@ -45,7 +48,7 @@ The SQLite schema represents the relational entities:
 
 ### 👨‍💼 Administrator Portal
 * **Employee Directory**: Complete roster of active corporate profiles. Can create/modify accounts and map reporting manager relationships.
-* **Project Dashboard**: Set priorities, state limits, timelines, and allocate personnel members.
+* **Project Dashboard**: Set priorities, state limits, timelines, add milestones, and allocate personnel members.
 * **Attendance Matrix**: Fetch all historical presence logs in the corporation.
 * **Clock-in Rate Today**: Dashboard indicator displaying the live fraction of present employees (checked-in users vs total users) matching local date logic.
 
@@ -53,12 +56,13 @@ The SQLite schema represents the relational entities:
 * **Team Roster**: Inspect direct subordinates.
 * **Competency Appraisals**: Form layout using ranges (1 to 5 stars) to score skills. Submissions instantly recalculate overall scores and map trends.
 * **Presence Monitoring**: Real-time Operations Matrix to track team check-in and checkout timings.
+* **Leaderboard Rank**: Displays top-performing team members ranked by appraisal ratings.
 
 ### 🧑‍💼 Employee Workspace
 * **Interactive Time-Clock**: Color-coded panel tracking check-in state. Features a live ticking clock. Clicking "Check In" logs the start time; clicking "Check Out" closes the record and logs total hours worked.
 * **Appraisal Radar Chart**: Displays the latest 5-axis competency matrix.
 * **Trend Line Charts**: Visualizes career trajectory across historical evaluations.
-* **Deliverables**: View assigned projects.
+* **Milestone Tasks**: Check/uncheck milestones for assigned projects.
 
 ---
 
